@@ -1,0 +1,47 @@
+name: bq-cost-guard
+description: Estimate BigQuery query cost (dry run), lint FinOps anti-patterns and comment on the pull request.
+branding:
+  icon: dollar-sign
+  color: green
+inputs:
+  path:
+    description: SQL file, folder or dbt project to analyze
+    default: "."
+  base:
+    description: Base branch for --git-diff (e.g. origin/main). Requires fetch-depth 0. Empty = analyze everything.
+    default: ""
+  project:
+    description: GCP project used for the dry run
+    default: ""
+  config:
+    description: Path to .bqcostguard.yaml
+    default: ""
+  comment:
+    description: Post/update a pull request comment
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v5
+    - id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_BASE: ${{ inputs.base }}
+        INPUT_PROJECT: ${{ inputs.project }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_COMMENT: ${{ inputs.comment }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        args=("$INPUT_PATH" --format markdown)
+        [ -n "$INPUT_BASE" ] && args+=(--git-diff "$INPUT_BASE")
+        [ -n "$INPUT_PROJECT" ] && args+=(--project "$INPUT_PROJECT")
+        [ -n "$INPUT_CONFIG" ] && args+=(--config "$INPUT_CONFIG")
+        code=0
+        uv run --no-project --with "${{ github.action_path }}" bq-cost-guard "${args[@]}" > "$RUNNER_TEMP/report.md" || code=$?
+        cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+        if [ "$INPUT_COMMENT" = "true" ] && [ -n "$PR_NUMBER" ]; then
+          gh pr comment "$PR_NUMBER" --edit-last --create-if-none --body-file "$RUNNER_TEMP/report.md"
+        fi
+        exit "$code"
