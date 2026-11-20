@@ -41,3 +41,9 @@ def test_cli_exit_code(mocker, tmp_path):
 
     mock_est.return_value = Estimate(bytes_processed=2 * TIB, cost_usd=12.5)
     assert runner.invoke(cli.app, [str(tmp_path), "--format", "json"]).exit_code == 1
+
+
+def test_cli_exit_2_on_estimation_error(mocker, tmp_path):
+    (tmp_path / "q.sql").write_text("SELECT a FROM t")
+    mocker.patch.object(cli.bigquery, "Client", side_effect=OSError("no project"))
+    assert CliRunner().invoke(cli.app, [str(tmp_path), "--format", "json"]).exit_code == 2

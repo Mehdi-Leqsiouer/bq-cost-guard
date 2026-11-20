@@ -62,8 +62,8 @@ def main(
     if not skip_estimate:
         try:
             client = bigquery.Client(project=project)
-        except GoogleAuthError as e:
-            auth_error = f"GCP authentication failed: {e}"
+        except (GoogleAuthError, OSError) as e:
+            auth_error = f"GCP client init failed: {e}"
 
     results = []
     for name, file in collect(path, git_diff).items():
@@ -82,4 +82,6 @@ def main(
             typer.echo(reporters.render_markdown(results))
         case Format.json:
             typer.echo(reporters.render_json(results))
-    raise typer.Exit(1 if any(r.status == "fail" for r in results) else 0)
+    # 1 = cost threshold exceeded, 2 = estimation error (auth/syntax/project), 0 = ok
+    statuses = {r.status for r in results}
+    raise typer.Exit(1 if "fail" in statuses else 2 if "error" in statuses else 0)

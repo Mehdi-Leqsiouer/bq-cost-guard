@@ -24,3 +24,10 @@ def test_auth_error_does_not_raise(mocker):
     client = mocker.Mock()
     client.query.side_effect = DefaultCredentialsError("no creds")
     assert "no creds" in estimate(client, "SELECT 1", 6.25).error
+
+
+def test_error_message_is_shortened(mocker):
+    client = mocker.Mock()
+    client.query.side_effect = BadRequest("Syntax error at [1:1]\n\nLocation: None")
+    client.query.side_effect.message = "POST https://bq.example/jobs: Syntax error at [1:1]\n\nJob ID: x"
+    assert estimate(client, "SELEC", 6.25).error == "Syntax error at [1:1]"

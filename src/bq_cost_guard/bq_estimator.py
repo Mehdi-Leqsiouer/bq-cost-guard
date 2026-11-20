@@ -1,3 +1,5 @@
+import re
+
 from google.api_core.exceptions import GoogleAPICallError
 from google.auth.exceptions import GoogleAuthError
 from google.cloud import bigquery
@@ -12,12 +14,17 @@ class Estimate(BaseModel):
     error: str | None = None
 
 
+def _short(msg: str) -> str:
+    """First line of an API error, without the `POST https://...: ` prefix."""
+    return re.sub(r"^[A-Z]+ \S+: ", "", msg.strip().splitlines()[0])
+
+
 def estimate(client: bigquery.Client, sql: str, price_per_tib: float) -> Estimate:
     """Dry-run `sql` and price it on-demand. Never raises on GCP/auth/syntax errors."""
     config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=False)
     try:
         job = client.query(sql, job_config=config)
     except (GoogleAPICallError, GoogleAuthError) as e:
-        return Estimate(error=getattr(e, "message", None) or str(e))
+        return Estimate(error=_short(getattr(e, "message", None) or str(e)))
     n = job.total_bytes_processed or 0
     return Estimate(bytes_processed=n, cost_usd=n / TIB * price_per_tib)
