@@ -19,6 +19,9 @@ def rules(sql: str, ignore=None) -> list[str]:
         ("order_by_no_limit.sql", ["BQ002"]),
         ("cross_join.sql", ["BQ003"]),
         ("implicit_join.sql", ["BQ003"]),
+        ("wildcard_no_suffix.sql", ["BQ004"]),
+        ("cte_reused.sql", ["BQ005"]),
+        ("limit_no_where.sql", ["BQ006"]),
     ],
 )
 def test_fixtures(fixture, expected):
@@ -48,3 +51,11 @@ def test_cross_join_with_where_or_unnest_ok():
 def test_ignore_and_syntax_error():
     assert rules("SELECT * FROM t", ["BQ001"]) == []
     assert rules("SELEC FROM FROM (") == []
+
+
+def test_new_rules_negative_cases():
+    assert rules("SELECT a FROM `p.d.e_*` WHERE _TABLE_SUFFIX BETWEEN '1' AND '2'") == []
+    assert rules("WITH c AS (SELECT a FROM t) SELECT a FROM c") == []
+    assert rules("WITH c AS (SELECT 1 AS a) SELECT x.a FROM c AS x JOIN c AS y ON x.a = y.a") == []
+    assert rules("SELECT a FROM t WHERE d = '1' LIMIT 10") == []
+    assert rules("SELECT a FROM (SELECT a FROM t LIMIT 5) ORDER BY a") == []

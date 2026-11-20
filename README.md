@@ -88,6 +88,9 @@ ignore_rules: []      # e.g. [BQ002]
 | `BQ001` | `SELECT *` |
 | `BQ002` | `ORDER BY` without `LIMIT` in a subquery or CTE |
 | `BQ003` | `CROSS JOIN` / implicit comma join without a `WHERE` |
+| `BQ004` | Wildcard table (`events_*`) without a `_TABLE_SUFFIX` filter |
+| `BQ005` | CTE referenced more than once that reads a table |
+| `BQ006` | `LIMIT` without `WHERE` (does not reduce bytes billed) |
 
 ## Development
 
