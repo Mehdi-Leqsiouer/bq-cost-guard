@@ -1,0 +1,5 @@
+# Copy to .bqcostguard.yaml
+price_per_tib: 6.25   # USD per TiB (BigQuery on-demand)
+warn_cost_usd: 1.0    # ⚠️ above this cost
+fail_cost_usd: 10.0   # ❌ above this cost, exit code 1
+ignore_rules: []      # e.g. [BQ002]
